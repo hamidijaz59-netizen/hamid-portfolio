@@ -1586,6 +1586,10 @@ let modalSmoothScroll = null;
 
 function startModalSmoothScroll(scroll) {
     if (!scroll || modalSmoothScroll) return;
+    // Touch / coarse-pointer devices use native momentum scrolling. The
+    // rAF loop below writes scrollTop every frame, which on iOS overrides
+    // finger drags and snaps the modal back to its last wheel-set target.
+    if (window.matchMedia('(hover: none), (pointer: coarse)').matches) return;
     modalSmoothScroll = {
         scroll,
         target:  scroll.scrollTop,

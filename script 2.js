@@ -1732,18 +1732,10 @@ function openWorkModal(slug) {
         }, '-=0.3');
 
         // Layer 3 — white content scroll rises over both curtains.
-        // onComplete clears the transform GSAP leaves behind. Safari
-        // refuses to scroll an overflow:auto element while it has any
-        // transform applied (even identity translate3d(0,0,0)) — the
-        // wheel/trackpad just no-ops. Stripping the transform once the
-        // entrance settles restores native + custom smooth scrolling.
         tl.to(scroll, {
             yPercent: 0,
             duration: 0.6,
-            ease: 'power3.out',
-            onComplete: () => {
-                gsap.set(scroll, { clearProps: 'transform' });
-            }
+            ease: 'power3.out'
         }, '-=0.3');
 
         // Inner content sections stagger in from below as the white

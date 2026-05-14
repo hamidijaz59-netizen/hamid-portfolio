@@ -1310,7 +1310,6 @@ body.is-prereveal .hero-canvas {
     object-fit: contain;
     object-position: center bottom;
     pointer-events: none;
-    background: transparent;
 }
 
 /* ===== Diagonal marquee bars =====
@@ -2420,7 +2419,7 @@ body.is-modal-open {
        hide the floating decorative props so the heading isn't crowded */
     .work-intro-heading,
     .about-intro-heading {
-        font-size: clamp(40px, 17vw, 80px);
+        font-size: clamp(40px, 18vw, 80px);
     }
     .about-intro-float--pen {
         display: none;

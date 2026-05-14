@@ -3,7 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hamid Ijaz — Human-Crafted Design for an AI World</title>
+
+    <!-- Title + description echo the contact tagline: "Prompts don't
+         build brands. I do." -->
+    <title>Hamid Ijaz — Prompts don’t build brands. I do.</title>
+    <meta name="description" content="Auckland-based UI/UX designer. Prompts don’t build brands — I do. Human-crafted design for modern brands in a fast-moving, AI-driven world.">
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/jpeg" href="assets/favicon.jpg">
+    <link rel="apple-touch-icon" href="assets/favicon.jpg">
+
+    <!-- Open Graph / social preview -->
+    <meta property="og:title" content="Hamid Ijaz — Prompts don’t build brands. I do.">
+    <meta property="og:description" content="Auckland-based UI/UX designer. Prompts don’t build brands — I do. Human-crafted design for modern brands in a fast-moving, AI-driven world.">
+    <meta property="og:image" content="assets/favicon.jpg">
+    <meta property="og:type" content="website">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Hamid Ijaz — Prompts don’t build brands. I do.">
+    <meta name="twitter:description" content="Auckland-based UI/UX designer. Prompts don’t build brands — I do.">
+    <meta name="twitter:image" content="assets/favicon.jpg">
     <!-- Tailwind v4 in-browser build — interprets utility classes at
          runtime so the static index.html can use Tailwind without a
          build pipeline. (The Next.js install in next-app/ is separate.) -->
@@ -435,7 +453,14 @@
 
             <div class="about-bio-inner">
                 <div class="about-photo">
-                    <video class="about-video" src="assets/final-standing.webm" autoplay loop muted playsinline></video>
+                    <!-- Alpha video, format-per-browser. Safari plays
+                         the HEVC-alpha .mov natively; Chrome/Firefox
+                         fall back to the VP9-alpha .webm. The browser
+                         picks the first <source> it can decode. -->
+                    <video class="about-video" autoplay loop muted playsinline>
+                        <source src="assets/final-standing.mov" type='video/mp4; codecs="hvc1"'>
+                        <source src="assets/final-standing.webm" type="video/webm">
+                    </video>
                 </div>
                 <div class="about-content">
                     <span class="about-eyebrow">About me</span>

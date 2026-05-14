@@ -1,0 +1,2651 @@
+/* =========================================================
+   Hamid Ijaz — Portfolio
+   Human-crafted design for an AI world
+   ========================================================= */
+
+@font-face {
+    font-family: 'Brockmann';
+    src: url('fonts/brockmann-medium-webfont.woff2') format('woff2'),
+         url('fonts/brockmann-medium-webfont.woff') format('woff'),
+         url('fonts/brockmann-medium-webfont.ttf') format('truetype'),
+         url('fonts/brockmann-medium-webfont.eot') format('embedded-opentype');
+    font-weight: 500;
+    font-style: normal;
+    font-display: swap;
+}
+
+*,
+*::before,
+*::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    --bg: #000000;
+    --bg-soft: #0a0000;
+    --red: #4a0000;
+    --red-deep: #2a0000;
+    --text: #DCE3E7;
+    --text-dim: rgba(220, 227, 231, 0.55);
+    --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+
+    /* Fluid container side padding */
+    --pad-x: clamp(24px, 4vw, 80px);
+    --pad-y: clamp(20px, 2.4vw, 36px);
+}
+
+/* Fluid container — full width, consistent side padding */
+.container {
+    width: 100%;
+    padding-left: var(--pad-x);
+    padding-right: var(--pad-x);
+}
+
+html,
+body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Brockmann', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-weight: 500;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    /* `clip` (not `hidden`) so the document doesn't become a scroll
+       container — that's what was killing position: sticky in .work-card. */
+    overflow-x: clip;
+}
+
+body {
+    min-height: 100vh;
+    /* Scroll runway for the fixed contact footer at the bottom of the
+       page — the about section needs room to slide up past the
+       viewport in order to reveal the footer that's pinned behind it. */
+    padding-bottom: 100vh;
+}
+
+/* All non-footer sections sit on top of the fixed contact footer so
+   they cover it during normal scroll; the user only sees the contact
+   when these scroll up off-screen at the very end. Solid bg on each
+   ensures the red footer underneath doesn't bleed through. */
+.hero,
+.work-intro,
+.work-stage,
+.about-intro,
+.about {
+    position: relative;
+    z-index: 5;
+    background: var(--bg);
+}
+
+a {
+    color: inherit;
+    text-decoration: none;
+}
+
+/* ----------- Loader ------------------------------------- */
+.loader {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Two black halves of the "CRT bezel". They slide apart (top up, bottom
+   down) to reveal the page beneath — each carries its own scanline. */
+.loader-half {
+    position: absolute;
+    left: 0;
+    width: 100%;
+    height: 50%;
+    background: #000;
+    z-index: 1;
+    will-change: transform;
+}
+
+.loader-half--top { top: 0; }
+.loader-half--bot { bottom: 0; }
+
+/* Bright horizontal scanlines anchored to the inner edge of each half so
+   they stay glued to the seam during the expand, then ride the halves out
+   of view during the split. */
+.loader-line {
+    position: absolute;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: #ffffff;
+    box-shadow: 0 0 24px rgba(255, 255, 255, 0.85),
+                0 0 60px rgba(255, 255, 255, 0.45);
+    transform: scaleX(0);
+    transform-origin: center center;
+    pointer-events: none;
+    will-change: transform;
+}
+
+.loader-line--top { bottom: 0; }
+.loader-line--bot { top: 0; }
+
+/* Flex-centered name. Sits above the two halves so the fill animation is
+   clearly readable until it collapses into the scanline. */
+.loader-name {
+    position: relative;
+    z-index: 4;
+    font-size: clamp(48px, 9vw, 120px);
+    letter-spacing: 0.04em;
+    line-height: 1;
+    font-weight: 500;
+    white-space: nowrap;
+    transform-origin: center center;
+    will-change: transform;
+}
+
+.loader-name-base {
+    color: rgba(220, 227, 231, 0.18);
+}
+
+.loader-name-fill {
+    position: absolute;
+    inset: 0;
+    color: #DCE3E7;
+    clip-path: inset(0 100% 0 0);
+    will-change: clip-path;
+}
+
+/* ----------- Scroll-velocity mouse indicator ------------ */
+/* Fixed bottom-right mouse icon. The inner red wheel (#mouseScrollDot)
+   is translated by JS in proportion to the current Lenis scroll
+   velocity — gives the impression of the wheel rolling as you scroll,
+   and centering itself when motion stops. */
+.scroll-mouse {
+    position: fixed;
+    right: clamp(20px, 2.4vw, 36px);
+    bottom: clamp(20px, 2.4vw, 36px);
+    width: clamp(22px, 1.8vw, 30px);
+    height: auto;
+    z-index: 40;
+    pointer-events: none;
+    opacity: 0.85;
+    filter: drop-shadow(0 4px 14px rgba(0, 0, 0, 0.6));
+    display: none;
+}
+
+#mouseScrollDot {
+    will-change: transform;
+}
+
+/* ----------- Header ------------------------------------- */
+.header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 50;
+    padding-top: var(--pad-y);
+    padding-bottom: var(--pad-y);
+    pointer-events: none;
+    transition: transform 0.5s var(--ease-out);
+}
+
+/* Auto-hide while scrolling DOWN; visible while scrolling UP or
+   when the page is idle. JS toggles `.is-hidden` based on scroll
+   direction (see initHeaderScroll). The translateY pulls the entire
+   header — including the glass scrim — out of view as one piece. */
+.header.is-hidden {
+    transform: translateY(-110%);
+}
+
+/* Glass scrim that fades in once the user scrolls past the top.
+   `backdrop-filter: blur` gives the frosted-glass effect so the
+   page content behind is softened but visible; the mask-image
+   gradient fades the blur from solid at the top to fully transparent
+   at the bottom, so there's no hard edge where the scrim ends. */
+.header::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 120%;
+    pointer-events: none;
+    z-index: 0;
+    background: linear-gradient(to bottom,
+        rgba(0, 0, 0, 0.55) 0%,
+        rgba(0, 0, 0, 0.28) 55%,
+        rgba(0, 0, 0, 0)    100%);
+    backdrop-filter: blur(16px) saturate(140%);
+    -webkit-backdrop-filter: blur(16px) saturate(140%);
+    mask-image: linear-gradient(to bottom,
+        black 0%, black 55%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to bottom,
+        black 0%, black 55%, transparent 100%);
+    opacity: 0;
+    transition: opacity 0.45s var(--ease-out);
+}
+
+/* Scrim is visible only when the user is past the threshold AND the
+   header isn't currently auto-hidden. The :not(.is-hidden) clause
+   couples the scrim's opacity to the menu's visibility, so going
+   down fades both out together and going up / stopping fades both
+   back in together. */
+.header.is-scrolled:not(.is-hidden)::before {
+    opacity: 1;
+}
+
+.header-inner {
+    position: relative;
+    z-index: 1;            /* sit above the glass scrim */
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 24px;
+}
+
+.logo,
+.nav,
+.cv-link {
+    pointer-events: auto;
+}
+
+/* Final logo — visible by default so the header always shows even if the
+   loader morph never lands. The morph still fades it in over the loader name. */
+.logo {
+    font-size: 14px;
+    letter-spacing: 0.04em;
+    line-height: 1;
+    font-weight: 500;
+    color: var(--text);
+    justify-self: start;
+    transform-origin: left center;
+}
+
+.nav {
+    display: flex;
+    gap: 64px;
+    justify-self: center;
+}
+
+.nav-link,
+.cv-link {
+    font-size: 14px;
+    letter-spacing: 0.12em;
+    color: var(--text-dim);
+    transition: color 0.4s var(--ease-out);
+}
+
+.nav-link:hover,
+.cv-link:hover {
+    color: var(--text);
+}
+
+/* Active link — set by JS (setupNavScrollSpy) when its target section
+   is the currently in-view block. Brighter than the default dim grey. */
+.nav-link.is-active {
+    color: #ffffff;
+}
+
+
+.cv-link {
+    justify-self: end;
+}
+
+/* Hamburger button — hidden on desktop, shown ≤900px via media query.
+   Two stacked lines that morph into an X when .is-open is toggled.
+   Lives OUTSIDE .header so it sits above the overlay's stacking context. */
+.header-burger {
+    display: none;
+    position: fixed;
+    top: clamp(20px, 0vh, 36px);
+    right: var(--pad-x);
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    background: transparent;
+    border: 0;
+    cursor: pointer;
+    pointer-events: auto;
+    z-index: 70;
+}
+.header-burger span {
+    position: absolute;
+    left: 8px;
+    right: 8px;
+    height: 2px;
+    background: var(--text);
+    transition: transform 0.4s var(--ease-out), top 0.3s var(--ease-out), opacity 0.3s var(--ease-out);
+}
+.header-burger span:nth-child(1) { top: 14px; }
+.header-burger span:nth-child(2) { top: 24px; }
+.header-burger.is-open span:nth-child(1) { top: 19px; transform: rotate(45deg); }
+.header-burger.is-open span:nth-child(2) { top: 19px; transform: rotate(-45deg); }
+
+/* Mobile overlay menu — full-screen panel that fades + slides in when
+   the burger is toggled. Sits below the burger button so the X stays
+   tappable. */
+.header-overlay {
+    position: fixed;
+    inset: 0;
+    background: var(--bg);
+    z-index: 60;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    opacity: 0;
+    visibility: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    transition: opacity 0.4s var(--ease-out), visibility 0.4s var(--ease-out);
+}
+.header-overlay.is-open {
+    opacity: 1;
+    visibility: visible;
+}
+.header-overlay-inner {
+    width: 100%;
+    max-width: 480px;
+    margin: 0 auto;
+    padding: clamp(96px, 14vh, 140px) clamp(24px, 6vw, 48px) clamp(48px, 8vh, 80px);
+    display: flex;
+    flex-direction: column;
+    gap: clamp(28px, 5vh, 48px);
+}
+.header-overlay-nav {
+    display: flex;
+    flex-direction: column;
+    gap: clamp(14px, 0vh, 22px);
+    align-items: flex-start;
+    text-align: left;
+}
+.header-overlay-link {
+    font-size: clamp(28px, 12vw, 44px);
+    letter-spacing: 0.04em;
+    color: var(--text);
+    text-decoration: none;
+    font-weight: 500;
+    transform: translateY(20px);
+    opacity: 0;
+    transition: transform 0.5s var(--ease-out), opacity 0.5s var(--ease-out);
+}
+.header-overlay-link .reveal-word {
+    line-height: 1.1;
+}
+
+/* Contact block — clones of the footer's contact-cards (linkedin /
+   behance / email / phone). User asked for the same boxes WITHOUT
+   the hover-expand behavior, so .header-overlay-card overrides
+   .contact-card hover transitions. */
+.header-overlay-contact {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    padding-top: clamp(20px, 3vh, 28px);
+    transform: translateY(20px);
+    opacity: 0;
+    transition: transform 0.5s var(--ease-out), opacity 0.5s var(--ease-out);
+}
+.header-overlay-eyebrow {
+    font-size: 11px;
+    letter-spacing: 0.32em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 4px;
+}
+/* Match the footer's contact-cards row exactly — same flex gap + same
+   card box dimensions inherited from .contact-card. */
+.header-overlay-cards {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+.header-overlay-card .contact-card-icon {
+    transition: none;
+}
+.header-overlay-card:hover .contact-card-icon,
+.header-overlay-card:focus .contact-card-icon {
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+/* "Let's go" CTA — pulls the contact section's primary action up into
+   the menu so users can reach it without scrolling to the footer. */
+.header-overlay-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 14px;
+    align-self: flex-start;
+    font-size: clamp(22px, 6vw, 32px);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text);
+    text-decoration: none;
+    font-weight: 600;
+    transform: translateY(20px);
+    opacity: 0;
+    transition: transform 0.5s var(--ease-out), opacity 0.5s var(--ease-out);
+}
+.header-overlay-cta svg {
+    transition: transform 0.4s var(--ease-out);
+}
+.header-overlay-cta:hover svg {
+    transform: translateX(6px);
+}
+
+.header-overlay.is-open .header-overlay-link,
+.header-overlay.is-open .header-overlay-contact,
+.header-overlay.is-open .header-overlay-cta {
+    transform: translateY(0);
+    opacity: 1;
+}
+.header-overlay.is-open .header-overlay-link:nth-child(1) { transition-delay: 0.08s; }
+.header-overlay.is-open .header-overlay-link:nth-child(2) { transition-delay: 0.14s; }
+.header-overlay.is-open .header-overlay-link:nth-child(3) { transition-delay: 0.20s; }
+.header-overlay.is-open .header-overlay-link:nth-child(4) { transition-delay: 0.26s; }
+.header-overlay.is-open .header-overlay-contact { transition-delay: 0.34s; }
+.header-overlay.is-open .header-overlay-cta { transition-delay: 0.46s; }
+
+/* shared reveal-word mechanism for nav + heading */
+.reveal-word {
+    display: inline-block;
+    overflow: hidden;
+    vertical-align: bottom;
+    line-height: 2.05;
+}
+
+.reveal-inner {
+    display: inline-block;
+    transform: translateY(0);
+    will-change: transform;
+}
+
+/* Only hide reveal-inner during the page reveal — class is added by JS
+   before the timeline runs, then animated to translateY(0) and removed. */
+.is-hidden .reveal-inner,
+.reveal-inner.is-hidden {
+    transform: translateY(110%);
+}
+
+/* ----------- Hero --------------------------------------- */
+/* The outer #hero acts as the scroll trigger; GSAP ScrollTrigger pins the
+   inner .hero-stage so the photo + heading stay locked while frames play.
+   #hero has NO fixed height so GSAP's pin-spacer (400vh) is free to expand
+   the document height — that's what creates the scrollable area. */
+.hero {
+    position: relative;
+    width: 100%;
+    background: var(--bg);
+}
+
+.hero-stage {
+    position: relative;
+    height: 100vh;
+    width: 100%;
+    overflow: hidden;
+}
+
+.hero-bg {
+    position: absolute;
+    inset: 0;
+    background: var(--bg);
+    z-index: 0;
+}
+
+.hero-canvas {
+    position: absolute;
+    top: 0;
+    right: -170px;
+    bottom: 0;
+    /* full-width so the photo at height-fit isn't clipped on the left */
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+}
+
+.hero-content {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: center;
+    padding: 0 var(--pad-x);
+    pointer-events: none;
+}
+
+.hero-title {
+    color: var(--text);
+    margin: 0;
+    font-size: 88px;
+    line-height: 1;
+    letter-spacing: -0.025em;
+    font-weight: 800;
+    max-width: 14ch;
+    text-transform: uppercase;
+}
+
+.hero-title--primary {
+    grid-column: 1;
+    justify-self: start;
+}
+
+/* Wrapper for the secondary heading + scroll-more CTA. The opacity reveal
+   lives here so heading and CTA fade in together. */
+.hero-secondary-wrap {
+    grid-column: 2;
+    justify-self: end;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 36px;
+    /* nudge inward from the right edge so it doesn't feel pinned */
+    margin-right: clamp(0px, 15vw, 60px);
+    opacity: 0;
+    margin-top: 210px;
+}
+
+.hero-title--secondary {
+    text-align: right;
+    /* smaller than the primary headline — more text, calmer voice */
+    font-size: 40px;
+    line-height: 1.2;
+    max-width: 28ch;
+    text-transform: none;
+    font-weight: 500;
+}
+
+/* Wrapper around the NZ text/flag pair. JS auto-cycles the contents:
+   "New Zealand" text → glitch scramble → flag (with elastic pop) →
+   pause → glitch back to text → loop. Both children share inline
+   layout so they swap places without disturbing the surrounding
+   "Based UX/UI" line. */
+.hero-nz {
+    display: inline-flex;
+    align-items: baseline;
+    vertical-align: baseline;
+}
+
+/* Text state of the NZ swap. Uses the same font as the heading; JS
+   shows/hides this element via inline display + scrambles its
+   characters during the transitions. */
+.hero-nz-text {
+    display: inline-block;
+}
+
+/* Inline NZ flag chip — sized to the cap-height of the secondary
+   heading so it sits on the baseline like a glyph. Pill rounded with
+   a hairline border, a soft shadow for lift, and `cursor: pointer` to
+   advertise the elastic hover (GSAP fires the elastic squish + scale
+   on mouseenter — see setupHeroFlagHover). */
+.hero-flag {
+    display: inline-block;
+    width: 1.55em;
+    height: 0.95em;
+    overflow: hidden;
+    border-radius: 0.18em;
+    vertical-align: -0.08em;
+    margin: 0 0.08em 0 0;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45),
+                0 0 0 1px rgba(255, 255, 255, 0.08) inset;
+    cursor: pointer;
+    transform-origin: center;
+    will-change: transform;
+}
+
+.hero-flag img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    pointer-events: none;
+    user-select: none;
+}
+
+/* Secondary heading lines stay hidden until scroll reveals them */
+.hero-title--secondary .line-inner {
+    transform: translateY(110%);
+}
+
+/* "scroll more to see my work" CTA — same animated line as the bottom indicator */
+.hero-cta {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    font-size: 13px;
+    letter-spacing: 0.04em;
+    color: rgba(220, 227, 231, 0.78);
+    white-space: nowrap;
+}
+
+.hero-title .line {
+    display: block;
+    overflow: hidden;
+}
+
+.hero-title .line-inner {
+    display: inline-block;
+    transform: translateY(0);
+    will-change: transform;
+}
+
+/* Only hidden when JS adds .is-prereveal to <body> before the timeline runs. */
+body.is-prereveal .hero-title .line-inner,
+body.is-prereveal .reveal-inner {
+    transform: translateY(110%);
+}
+
+body.is-prereveal .hero-canvas {
+    opacity: 0;
+}
+
+/* ----------- Recent work intro section ------------------
+   Sits between hero and work in normal document flow (no negative
+   margin — page loads with hero first as expected). When the user
+   scrolls in, the stage pins, words drop in one-by-one (parallax
+   stagger), then the red + black layer wipe hands off to Work. */
+.work-intro,
+.about-intro {
+    position: relative;
+    width: 100%;
+    z-index: 5;
+}
+
+.work-intro-stage,
+.about-intro-stage {
+    position: relative;
+    height: 100vh;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    padding: 0 var(--pad-x);
+    /* Dim red-to-black linear — red rises from the bottom (0%) up to
+       black at the top (100%), so the gradient feels like the colour is
+       coming up out of the next section. */
+    background:
+        linear-gradient(to top,
+            rgba(150, 0, 0, 0.45) 0%,
+            rgba(60, 0, 0, 0.4) 35%,
+            rgba(20, 0, 0, 0.25) 65%,
+            var(--bg) 100%),
+        var(--bg);
+}
+
+/* About-intro override — solid brand red as the canvas. Heading recolors
+   to a black → white wipe (see .about-intro-heading .intro-line below). */
+.about-intro-stage {
+    background: #c40000;
+}
+
+/* About-intro heading uses a black → white wipe instead of dim-red →
+   red. The override lives on the word selector — see further down. */
+
+.work-intro-heading,
+.about-intro-heading {
+    font-size: clamp(72px, 14vw, 200px);
+    line-height: 0.92;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    text-transform: uppercase;
+    text-align: center;
+    margin: 0;
+    max-width: 100%;
+    color: #ff1f1f;
+    position: relative;
+    z-index: 2;
+}
+
+/* Floating props in the about-intro pin — absolute-positioned around
+   the heading on both sides. mix-blend-mode: screen blends each prop
+   with whatever is behind it (the red intro bg when behind the
+   heading, or the heading text when in front) — black pixels of the
+   prop become transparent, so the props feel woven into the scene
+   rather than pasted on top.
+
+   z-index alternates so some props sit IN FRONT of the heading
+   (z-index: 3, above .about-intro-heading at 2) and others BEHIND it
+   (z-index: 1, below the heading) — produces a layered depth read
+   instead of a flat row of stickers. */
+.about-intro-float {
+    position: absolute;
+    pointer-events: none;
+    user-select: none;
+    will-change: transform, opacity;
+}
+
+/* Behind the heading text. */
+.about-intro-float--camera,
+.about-intro-float--headphone {
+    z-index: 1;
+}
+
+/* In front of the heading text. */
+.about-intro-float--coffee,
+.about-intro-float--glasses,
+.about-intro-float--pen {
+    z-index: 3;
+}
+
+.about-intro-float--camera {
+    top: 10%;
+    left: 18%;
+    width: clamp(150px, 14vw, 230px);
+}
+
+.about-intro-float--coffee {
+    top: 58%;
+    left: 14%;
+    width: clamp(120px, 11vw, 180px);
+}
+
+.about-intro-float--glasses {
+    top: 12%;
+    right: 18%;
+    width: clamp(160px, 15vw, 240px);
+}
+
+.about-intro-float--headphone {
+    top: 56%;
+    right: 14%;
+    width: clamp(160px, 15vw, 240px);
+}
+
+.about-intro-float--pen {
+    top: 78%;
+    right: 40%;
+    width: clamp(100px, 9vw, 150px);
+}
+
+@media (max-width: 900px) {
+    .about-intro-float--camera    { left: 8%;  width: 110px; }
+    .about-intro-float--coffee    { left: 6%;  width: 90px;  }
+    .about-intro-float--glasses   { right: 8%; width: 120px; }
+    .about-intro-float--headphone { right: 6%; width: 120px; }
+    .about-intro-float--pen       { display: none; }
+}
+
+/* Floating props for the work-intro pin — same positioning pattern
+   as the about-intro floats above, but using the four PNGs in
+   assets/intro-imgs/. JS in initWorkIntroFloats sets the parallax
+   tween. Two sit IN FRONT of the heading (z-index 3), two BEHIND
+   (z-index 1) for a layered depth read. */
+.work-intro-float {
+    position: absolute;
+    pointer-events: none;
+    user-select: none;
+    will-change: transform, opacity;
+    mix-blend-mode: screen;
+}
+
+/* Behind the heading text. */
+.work-intro-float--1,
+.work-intro-float--3 {
+    z-index: 1;
+}
+
+/* In front of the heading text. */
+.work-intro-float--2,
+.work-intro-float--4 {
+    z-index: 3;
+}
+
+.work-intro-float--1 {
+    top: 10%;
+    left: 12%;
+    width: clamp(150px, 14vw, 230px);
+}
+
+.work-intro-float--2 {
+    top: 56%;
+    left: 8%;
+    width: clamp(120px, 11vw, 180px);
+}
+
+.work-intro-float--3 {
+    top: 12%;
+    right: 12%;
+    width: clamp(160px, 15vw, 240px);
+}
+
+.work-intro-float--4 {
+    top: 58%;
+    right: 8%;
+    width: clamp(140px, 13vw, 210px);
+}
+
+@media (max-width: 900px) {
+    .work-intro-float--1 { left: 4%;  width: 110px; }
+    .work-intro-float--2 { left: 2%;  width: 90px;  }
+    .work-intro-float--3 { right: 4%; width: 120px; }
+    .work-intro-float--4 { right: 2%; width: 100px; }
+}
+
+/* Per-word span produced by SplitText. inline-block so we can transform
+   each word independently for the parallax stagger reveal.
+   Wipe technique: each word is restructured by JS into TWO stacked
+   copies of itself — a dim copy (always visible) and a bright copy
+   positioned absolutely on top, clipped from below with `clip-path:
+   inset(0 0 X% 0)`. JS animates X from 100% (bright fully clipped =
+   invisible) toward 0% (no clip = bright fully visible), revealing
+   the bright copy top → bottom. clip-path is a first-class paint
+   property — works reliably in Chrome and Safari regardless of any
+   compositing-layer promotion on the word. background-clip: text was
+   the wrong tool: in Chrome it silently fails when its descendants
+   are promoted to compositing layers (which is what `will-change:
+   transform` + a transform animation does to every word). */
+.work-intro-word,
+.about-intro-word {
+    position: relative;
+    display: inline-block;
+    will-change: transform, opacity;
+}
+
+/* The two stacked copies. Both must occupy the same box, so the
+   bright copy sits absolute over the dim copy. Pointer events go
+   through the bright copy. */
+.intro-word-dim {
+    display: inline-block;
+}
+.intro-word-bright {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    clip-path: inset(0 0 100% 0);
+    -webkit-clip-path: inset(0 0 100% 0);
+    will-change: clip-path;
+}
+
+/* Colour pairs: work-intro = dim-red + bright-red.
+   about-intro    = near-black + white. */
+.work-intro-heading .intro-word-dim    { color: rgba(225, 50, 50, 0.32); }
+.work-intro-heading .intro-word-bright { color: #ff1f1f; }
+
+.about-intro-heading .intro-word-dim    { color: rgba(0, 0, 0, 0.65); }
+.about-intro-heading .intro-word-bright { color: #ffffff; }
+
+.work-intro-char,
+.about-intro-char {
+    display: inline-block;
+}
+
+/* .intro-line — layout-only wrapper; nothing painted here. */
+.intro-line { /* layout wrapper only */ }
+
+/* Vertical scroll cue under the heading — same pulse/track pattern as
+   the hero's horizontal indicator, rotated 90° with a chevron arrow at
+   the bottom end. */
+.work-intro-scroll,
+.about-intro-scroll {
+    position: absolute;
+    bottom: 7vh;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    z-index: 1;
+    pointer-events: none;
+}
+
+.work-intro-scroll-line,
+.about-intro-scroll-line {
+    position: relative;
+    display: block;
+    width: 1px;
+    height: 80px;
+    background: rgba(220, 227, 231, 0.22);
+    overflow: hidden;
+}
+
+.work-intro-scroll-pulse,
+.about-intro-scroll-pulse {
+    position: absolute;
+    top: -40%;
+    left: 0;
+    width: 100%;
+    height: 40%;
+    background: linear-gradient(180deg,
+        rgba(220, 227, 231, 0) 0%,
+        rgba(220, 227, 231, 1) 50%,
+        rgba(220, 227, 231, 0) 100%);
+    animation: intro-scroll-pulse 1.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+@keyframes intro-scroll-pulse {
+    0%   { top: -40%; }
+    100% { top: 100%; }
+}
+
+/* Chevron arrow — two borders rotated 45° point downward. */
+.work-intro-scroll-arrow,
+.about-intro-scroll-arrow {
+    width: 8px;
+    height: 8px;
+    border-right: 1px solid rgba(220, 227, 231, 0.55);
+    border-bottom: 1px solid rgba(220, 227, 231, 0.55);
+    transform: rotate(45deg);
+    margin-top: -3px;
+}
+
+/* Layered transition panels — red rises first, black rises over red.
+   Higher z-index than the heading so they cover it as they slide up.
+   Black has the highest z-index so it's the final cover before work. */
+.work-intro-layer,
+.about-intro-layer {
+    position: absolute;
+    inset: 0;
+    transform: translateY(100%);
+    will-change: transform;
+    pointer-events: none;
+}
+
+.work-intro-layer--red,
+.about-intro-layer--red {
+    background: #c40000;
+    z-index: 2;
+}
+
+.work-intro-layer--black,
+.about-intro-layer--black {
+    background: var(--bg);
+    z-index: 3;
+}
+
+/* About-intro hands off to about via the about section's own background
+   interpolation (red → black on scroll), so the red+black layer wipes
+   used by work-intro are hidden here — the red bg stays visible until
+   about takes over. */
+#aboutIntroLayerRed,
+#aboutIntroLayerBlack {
+    display: none;
+}
+
+.scroll-indicator {
+    position: absolute;
+    bottom: 40px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 3;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    font-size: 13px;
+    letter-spacing: 0.04em;
+    color: rgba(220, 227, 231, 0.78);
+    opacity: 0;
+    white-space: nowrap;
+}
+
+.scroll-indicator-line {
+    position: relative;
+    display: inline-block;
+    width: 80px;
+    height: 1px;
+    background: rgba(220, 227, 231, 0.22);
+    overflow: hidden;
+}
+
+.scroll-indicator-line-pulse {
+    position: absolute;
+    top: 0;
+    left: -40%;
+    width: 40%;
+    height: 100%;
+    background: linear-gradient(90deg,
+        rgba(220, 227, 231, 0) 0%,
+        rgba(220, 227, 231, 1) 50%,
+        rgba(220, 227, 231, 0) 100%);
+    animation: scroll-indicator-pulse 1.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+@keyframes scroll-indicator-pulse {
+    0%   { left: -40%; }
+    100% { left: 100%;  }
+}
+
+/* ----------- Work stage: full-screen panel scroller -----------
+   A single 100vh section that hosts 4 stacked panels. Observer
+   captures wheel/touch input while the section is in view and
+   slides the next panel up over the current one (or pulls the
+   current one down to reveal the previous). */
+.work-stage {
+    position: relative;
+    width: 100%;
+    height: 100vh;
+    overflow: hidden;
+    background: var(--bg);
+    z-index: 10;
+}
+
+/* Horizontal track — all panels in a row, total width = N × 100vw.
+   GSAP translates this on the X axis as the user scrolls vertically
+   through the pinned stage, creating a side-by-side carousel. */
+.work-panels {
+    display: flex;
+    width: 400vw;
+    height: 100%;
+    will-change: transform;
+}
+
+.work-panel {
+    flex: 0 0 100vw;
+    height: 100%;
+    position: relative;
+    overflow: hidden;
+}
+
+.work-panel-bg {
+    position: absolute;
+    inset: 0;
+    background-size: cover;
+    background-position: center;
+    z-index: 0;
+}
+
+.work-panel-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg,
+        rgba(0, 0, 0, 0.25) 0%,
+        rgba(0, 0, 0, 0.55) 55%,
+        rgba(0, 0, 0, 0.85) 100%);
+    z-index: 1;
+}
+
+.work-panel-content {
+    position: absolute;
+    bottom: clamp(8vh, 12vh, 14vh);
+    left: 0;
+    right: 0;
+    z-index: 2;
+    color: var(--text);
+}
+
+.work-panel-eyebrow {
+    display: inline-block;
+    font-size: 12px;
+    letter-spacing: 0.32em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 18px;
+}
+
+.work-panel-title {
+    font-size: clamp(56px, 9vw, 140px);
+    font-weight: 800;
+    line-height: 0.95;
+    letter-spacing: -0.025em;
+    text-transform: uppercase;
+    margin: 0 0 26px;
+    max-width: 14ch;
+}
+
+.work-panel-tags {
+    list-style: none;
+    display: flex;
+    gap: 8px;
+    margin: 0 0 24px;
+    padding: 0;
+    flex-wrap: wrap;
+}
+
+.work-panel-tags li {
+    padding: 6px 14px;
+    border: 1px solid rgba(220, 227, 231, 0.35);
+    border-radius: 999px;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--bg);
+    line-height: 1;
+    background: rgb(255 255 255 / 67%);
+    backdrop-filter: blur(12px) saturate(140%);
+    -webkit-backdrop-filter: blur(12px) saturate(140%);
+}
+
+.work-panel-desc {
+    font-size: 17px;
+    line-height: 1.55;
+    color: rgba(220, 227, 231, 0.88);
+    max-width: 56ch;
+    margin: 0;
+}
+
+/* Glass CTA pinned to the bottom-right of each work panel — same
+   blur card pattern as the original work overlay nav, with the
+   panel's own thumbnail, the project counter, a label, and the
+   arrow button. */
+.work-panel-cta {
+    position: absolute;
+    right: var(--pad-x);
+    bottom: clamp(28px, 5vh, 56px);
+    z-index: 3;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    width: clamp(280px, 30%, 420px);
+    padding: 10px 10px 10px 14px;
+    background: rgba(20, 20, 22, 0.55);
+    backdrop-filter: blur(20px) saturate(140%);
+    -webkit-backdrop-filter: blur(20px) saturate(140%);
+    border: 1px solid rgba(220, 227, 231, 0.12);
+    border-radius: 14px;
+    color: var(--text);
+    text-decoration: none;
+    transition: background 0.4s var(--ease-out);
+}
+
+.work-panel-cta:hover {
+    background: rgba(30, 30, 33, 0.7);
+}
+
+.work-panel-cta-thumb {
+    flex-shrink: 0;
+    width: 56px;
+    height: 56px;
+    border-radius: 8px;
+    background-size: cover;
+    background-position: center;
+}
+
+.work-panel-cta-text {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.work-panel-cta-counter {
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    color: var(--text-dim);
+    text-transform: uppercase;
+}
+
+.work-panel-cta-name {
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.work-panel-cta-btn {
+    flex-shrink: 0;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--text);
+    color: #0a0a0a;
+    border-radius: 10px;
+    font-size: 18px;
+    line-height: 1;
+    transition: transform 0.4s var(--ease-out);
+}
+
+.work-panel-cta:hover .work-panel-cta-btn {
+    transform: translate(2px, -2px);
+}
+
+/* Counter pill — fixed at top-right of the stage so the user always
+   knows which of the 4 panels they're looking at. */
+.work-stage-counter {
+    position: absolute;
+    top: 96px;
+    right: var(--pad-x);
+    z-index: 5;
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+    font-variant-numeric: tabular-nums;
+    color: var(--text);
+}
+
+.work-stage-counter-current {
+    font-size: clamp(48px, 6vw, 88px);
+    font-weight: 800;
+    letter-spacing: -0.025em;
+    line-height: 1;
+}
+
+.work-stage-counter-divider,
+.work-stage-counter-total {
+    font-size: 14px;
+    letter-spacing: 0.05em;
+    color: var(--text-dim);
+}
+
+
+
+/* ========== About section ============================================
+   Lumus.de-style background: a sticky child pins to the viewport so its
+   bg-color fills the screen the entire time #about is in view. GSAP
+   scrubs its background-color from red → black across the section's
+   scroll length (see initAboutBgTween in script.js). */
+.about {
+    position: relative;
+    width: 100%;
+    /* overflow: visible so the diagonal bars can extend above the
+       section into the about-intro space above. body { overflow-x:
+       hidden } (further down) prevents any horizontal scrollbar. */
+    overflow: visible;
+    color: var(--text);
+    background-color: var(--bg);
+    z-index: 5;
+    top: 0px;
+}
+
+/* ----- Bio block (full-viewport hero with photo + intro) -----
+   overflow: visible so the rotated bar corners can extend above the
+   section into the intro space above (the .about section also uses
+   overflow: visible — see .about). Top padding pushes the bio content
+   down so the bars sit cleanly above the photo + bio without being
+   clipped by the section boundary. */
+.about-bio {
+    position: relative;
+    z-index: 1;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 22vh var(--pad-x) 10vh;
+    overflow: visible;
+}
+
+.about-bio-inner {
+    position: relative;
+    z-index: 2;
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    /* Top inset pushes the bio block down so the photo + content
+       sit well below the diagonal bars. */
+    margin-top: clamp(100px, 16vh, 240px);
+    display: grid;
+    grid-template-columns: minmax(260px, 360px) minmax(0, 1fr);
+    gap: clamp(16px, 2vw, 32px);
+    align-items: center;
+    justify-content: center;
+}
+
+/* Photo column hosts the standing-character video. mix-blend-mode:
+   screen on the video drops its black backdrop so the character
+   sits cleanly on whatever is behind. z-index: 5 elevates the photo
+   above the diagonal bars (z-index: 3), so the character's head pokes
+   IN FRONT of the red bar instead of being covered by it. The video
+   itself is scaled up 2× and overflows the column on all sides — the
+   column stays narrow so the bio text on the right sits close, while
+   the visible character is large. */
+.about-photo {
+    position: relative;
+    z-index: 5;
+    width: 100%;
+    aspect-ratio: 4 / 5;
+    overflow: visible;
+    background: transparent;
+}
+
+.about-video {
+    display: block;
+    position: absolute;
+    left: 50%;
+    bottom: 0;
+    top: -190px;
+    width: 200%;
+    height: 200%;
+    transform: translateX(-50%);
+    object-fit: contain;
+    object-position: center bottom;
+    pointer-events: none;
+}
+
+/* ===== Diagonal marquee bars =====
+   Two ribbons absolute-positioned across the top of .about-bio,
+   rotated -10°. The character's head from the video extends above
+   the natural top of the bio block and overlaps the bars; .about-photo
+   uses overflow: visible to allow this. The bars sit between the
+   sticky bg layer and the bio content — z-index: 1 with content at 2
+   only where the head should poke through (the photo column lives in
+   the same z-layer as the bars but appears on top via stacking). */
+.about-bars {
+    position: absolute;
+    top: 8vh;
+    left: -10%;
+    right: -10%;
+    z-index: 2;
+    pointer-events: none;
+}
+
+.about-bar {
+    position: relative;
+    width: 100%;
+    height: clamp(82px, 8.5vw, 128px);
+    overflow: hidden;
+    transform: rotate(-10deg);
+    transform-origin: center;
+    will-change: transform;
+}
+
+.about-bar--white {
+    background: #ffffff;
+    margin-bottom: -10px;
+}
+
+.about-bar--red {
+    background: #c40000;
+}
+
+.about-bar-track {
+    display: flex;
+    align-items: center;
+    width: max-content;
+    height: 100%;
+    will-change: transform;
+}
+
+.about-bar-set {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    padding-right: 56px;
+}
+
+/* White bar — icons scroll left → right */
+.about-bar--white .about-bar-set {
+    gap: 56px;
+}
+.about-bar--white .about-bar-set img {
+    height: clamp(44px, 4.5vw, 64px);
+    width: auto;
+    flex-shrink: 0;
+    display: block;
+}
+.about-bar--white .about-bar-track {
+    animation: about-marquee-ltr 38s linear infinite;
+}
+
+/* Red bar — text scrolls right → left */
+.about-bar--red .about-bar-set {
+    gap: 28px;
+    color: #ffffff;
+    font-size: clamp(26px, 2.4vw, 38px);
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+    text-transform: capitalize;
+}
+.about-bar--red .about-bar-dot {
+    opacity: 0.85;
+}
+.about-bar--red .about-bar-track {
+    animation: about-marquee-rtl 42s linear infinite;
+}
+
+@keyframes about-marquee-ltr {
+    from { transform: translate3d(-50%, 0, 0); }
+    to   { transform: translate3d(0, 0, 0); }
+}
+
+@keyframes about-marquee-rtl {
+    from { transform: translate3d(0, 0, 0); }
+    to   { transform: translate3d(-50%, 0, 0); }
+}
+
+/* Bars start at their natural in-position (rotated, no translate);
+   GSAP applies the off-screen entry state via inline style at init,
+   then tweens them in on scroll. */
+
+.about-content {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    max-width: 64ch;
+    /* Top padding clears the diagonal bars (.about-bars) above the
+       bio so the "ABOUT ME" eyebrow doesn't crowd the red ribbon. */
+    padding-top: clamp(60px, 10vh, 140px);
+}
+
+.about-eyebrow {
+    font-size: 12px;
+    letter-spacing: 0.32em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 4px;
+}
+
+.about-name {
+    margin: 0;
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: -0.025em;
+    font-size: clamp(40px, 5.2vw, 72px);
+}
+
+.about-role {
+    margin: 0;
+    font-size: 16px;
+    letter-spacing: 0.02em;
+    color: var(--text-dim);
+}
+
+.about-bio-text {
+    margin: 0;
+    font-size: 17px;
+    line-height: 1.65;
+    color: rgba(255, 255, 255, 0.85);
+}
+
+.about-meta {
+    list-style: none;
+    margin: 14px 0 0;
+    padding: 18px 0 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: clamp(16px, 4vw, 56px);
+}
+
+.about-meta-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.about-meta-label {
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+}
+
+.about-meta-value {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+}
+
+/* ----- Experience block ----- */
+.about-experience {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 1100px;
+    margin: 0 auto;
+    /* Bigger top padding adds breathing room between the bio block
+       above and the experience timeline below. */
+    padding: clamp(80px, 16vh, 220px) var(--pad-x) 18vh;
+}
+
+.about-experience-header {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    text-align: left;
+    gap: 12px;
+    margin-bottom: 7vh;
+    padding-left: clamp(12px, 2vw, 24px);
+}
+
+.about-experience-eyebrow {
+    font-size: 12px;
+    letter-spacing: 0.32em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+}
+
+.about-experience-title {
+    margin: 0;
+    font-weight: 800;
+    line-height: 1.05;
+    letter-spacing: -0.025em;
+    font-size: clamp(34px, 4vw, 56px);
+}
+
+.exp-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.exp-row {
+    display: grid;
+    grid-template-columns: 200px 1fr auto;
+    gap: clamp(24px, 3vw, 56px);
+    align-items: center;
+    padding: 28px clamp(12px, 2vw, 24px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+    transition: background 450ms var(--ease-out), padding 450ms var(--ease-out);
+}
+
+.exp-row:hover {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.exp-date {
+    font-size: 13px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.exp-info {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.exp-title {
+    margin: 0;
+    font-weight: 600;
+    line-height: 1.15;
+    letter-spacing: -0.01em;
+    font-size: clamp(20px, 2vw, 26px);
+}
+
+.exp-company {
+    margin: 0;
+    font-size: 14px;
+    color: var(--text-dim);
+}
+
+.exp-location {
+    font-size: 12px;
+    color: var(--text-dim);
+    white-space: nowrap;
+}
+
+@media (max-width: 900px) {
+    .about-bio-inner {
+        grid-template-columns: 1fr;
+        gap: 32px;
+        justify-items: center;
+    }
+    .about-meta {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+}
+
+@media (max-width: 768px) {
+    .exp-row {
+        grid-template-columns: 1fr;
+        gap: 8px;
+        padding: 22px clamp(12px, 2vw, 24px);
+        align-items: flex-start;
+    }
+}
+
+/* ========== About — Download Resume link ============================
+   Text + icon, no box. cursor: pointer on hover; the text scrambles
+   via the shared glitch-reveal hook (see setupGlitchHover, which now
+   includes .about-cv-btn). JS slides + fades it in when the about
+   bio scrolls into view (see initAboutCvButton). */
+.about-cv-btn {
+    align-self: flex-start;
+    display: inline-flex;
+    align-items: center;
+    gap: 14px;
+    margin-top: 24px;
+    padding: 0;
+    background: transparent;
+    border: none;
+    color: #ffffff;
+    text-decoration: none;
+    font-size: 18px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    font-weight: 600;
+    cursor: pointer;
+    will-change: transform, opacity;
+}
+
+.about-cv-btn-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 0;
+}
+
+.about-cv-btn-icon svg {
+    width: 24px;
+    height: 24px;
+    display: block;
+}
+
+/* ========== Work project modal =====================================
+   Fixed shell that slides up from below the viewport when a .work-
+   panel-cta is clicked, lands at top 15% of the viewport (so a slice
+   of the page peeks behind it), and scrolls internally. JS populates
+   .work-modal-scroll from the WORK_PROJECTS data table — every
+   section (header, meta, image grid, brand colours, end prompt) is
+   rebuilt per click so the same shell handles any project. */
+.work-modal {
+    position: fixed;
+    top: 5vh;
+    left: 0;
+    right: 0;
+    height: 95vh;
+    /* Above the loader (1000), header (50), and any pinned section
+       stacking context — guarantees the modal is the topmost layer. */
+    z-index: 9999;
+    color: #111111;
+    border-top-left-radius: clamp(12px, 1.4vw, 20px);
+    border-top-right-radius: clamp(12px, 1.4vw, 20px);
+    box-shadow: 0 -24px 80px rgba(0, 0, 0, 0.45);
+    overflow: hidden;
+    /* Modal shell is just a clipping bounds box; the actual painted
+       layers (curtains + scroll) sit inside and animate independently.
+       Hidden by default so it can't intercept clicks. */
+    visibility: hidden;
+    pointer-events: none;
+}
+
+.work-modal.is-open {
+    visibility: visible;
+    pointer-events: auto;
+}
+
+/* Coloured curtains that rise from below before the white content,
+   GSAP staggered by 0.3s. Hidden initial state set by gsap.set so
+   we never see a flash on first paint. */
+.work-modal-curtain {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    will-change: transform;
+}
+.work-modal-curtain--1 { background: #c40000; z-index: 1; }
+.work-modal-curtain--2 { background: #111111; z-index: 2; }
+
+/* Body lock — JS adds .is-modal-open to <body> while a modal is up. */
+body.is-modal-open {
+    overflow: hidden;
+}
+
+.work-modal-scroll {
+    position: relative;
+    z-index: 3;
+    height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: clamp(40px, 5vw, 80px) clamp(24px, 4vw, 80px) clamp(60px, 8vh, 120px);
+    background: #ffffff;
+    color: #111111;
+    -webkit-overflow-scrolling: touch;
+    /* Stop wheel events from bubbling out of the modal scroller back
+       to the page (and to Lenis) once the user reaches a scroll edge. */
+    overscroll-behavior: contain;
+    /* Mark this region as scroll-isolated for Lenis — when Lenis
+       sees a wheel event whose target sits inside an element with
+       this attribute it bails out and lets native scrolling run. */
+    will-change: transform;
+}
+
+.work-modal-close {
+    position: absolute;
+    top: clamp(16px, 1.6vw, 28px);
+    right: clamp(16px, 1.6vw, 28px);
+    z-index: 4;
+    width: 44px;
+    height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(0, 0, 0, 0.16);
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.92);
+    color: #111111;
+    cursor: pointer;
+    backdrop-filter: blur(6px);
+    transition: background 0.3s var(--ease-out), transform 0.3s var(--ease-out);
+}
+.work-modal-close:hover {
+    background: #111111;
+    color: #ffffff;
+    transform: scale(1.05);
+}
+
+/* ----- Header (title + tag pills + subtitle) ----- */
+.work-modal-header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: clamp(16px, 2vw, 32px);
+    align-items: end;
+}
+
+.work-modal-title {
+    margin: 0;
+    font-size: clamp(36px, 4.6vw, 72px);
+    font-weight: 700;
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    color: #111111;
+}
+
+.work-modal-tags {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: flex-end;
+}
+
+.work-modal-tags li {
+    padding: 8px 16px;
+    border: 1px solid rgba(0, 0, 0, 0.14);
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    color: #333333;
+    background: rgba(0, 0, 0, 0.02);
+}
+
+.work-modal-subtitle {
+    margin: clamp(8px, 1vh, 16px) 0 0;
+    font-size: clamp(14px, 1vw, 18px);
+    color: #555555;
+    grid-column: 1 / -1;
+}
+
+/* ----- Meta row (Challenge / Tools / View Live) ----- */
+.work-modal-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: clamp(24px, 4vw, 80px);
+    margin-top: clamp(40px, 5vh, 80px);
+}
+
+.work-modal-meta-block {
+    flex: 1 1 0;
+    min-width: 220px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.work-modal-meta-label {
+    align-self: flex-start;
+    padding: 6px 14px;
+    border: 1px solid rgba(0, 0, 0, 0.14);
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 500;
+    color: #444444;
+}
+
+.work-modal-meta-text {
+    margin: 0;
+    font-size: clamp(13px, 0.95vw, 15px);
+    line-height: 1.55;
+    color: #333333;
+    max-width: 60ch;
+}
+
+.work-modal-tools {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    align-items: center;
+}
+
+.work-modal-tools img {
+    width: clamp(28px, 2.4vw, 40px);
+    height: clamp(28px, 2.4vw, 40px);
+    object-fit: contain;
+}
+
+/* "View Live" sits at the END of the meta flex row (auto-pushed to
+   the right by margin-left: auto). Big bold + arrow icon, no
+   underline, gentle lift on hover. */
+.work-modal-live {
+    flex: 0 0 auto;
+    margin-left: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    color: #111111;
+    font-size: clamp(22px, 2vw, 36px);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    line-height: 1;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: opacity 0.3s var(--ease-out), transform 0.3s var(--ease-out);
+}
+.work-modal-live-arrow {
+    display: inline-block;
+    width:  0.85em;
+    height: 0.85em;
+    flex-shrink: 0;
+}
+.work-modal-live:hover {
+    opacity: 0.75;
+    transform: translate(2px, -2px);
+}
+
+/* ----- Image grid — flexible 6-col layout. Each item declares its
+   own column span via modifier classes, so the layout reads as
+   irregular (different widths per row) rather than a uniform 2-col
+   grid. `grid-auto-flow: dense` lets smaller items backfill the gaps
+   left by larger ones, so adding more images doesn't break the
+   rhythm. ----- */
+.work-modal-images {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: clamp(12px, 1.2vw, 20px);
+    margin-top: clamp(40px, 5vh, 80px);
+    grid-auto-flow: dense;
+}
+
+.work-modal-image {
+    position: relative;
+    overflow: hidden;
+    border-radius: 6px;
+    background: #d9d9d9;
+    /* Same height on every tile — only widths vary per modifier. */
+    height: 800px;
+    grid-column: span 3;   /* default = half width (3 of 6 cols) */
+}
+
+/* Width modifiers only — heights stay uniform. */
+.work-modal-image.is-third { grid-column: span 2; }   /* ~33% */
+.work-modal-image.is-half  { grid-column: span 3; }   /* 50%   */
+.work-modal-image.is-wide  { grid-column: span 4; }   /* ~67% */
+.work-modal-image.is-full  { grid-column: 1 / -1; }
+
+.work-modal-image img,
+.work-modal-image video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+/* Multi-brand project layout — used by projects whose data.sections is
+   set (each section = one sub-brand with its own image grid + palette).
+   The eyebrow stamps the brand name above each section so the viewer
+   can tell where one identity ends and the next begins. */
+.work-modal-section {
+    display: block;
+}
+.work-modal-section + .work-modal-section {
+    margin-top: clamp(60px, 9vh, 120px);
+}
+.work-modal-section-eyebrow {
+    display: block;
+    width: fit-content;
+    margin-left: auto;
+    margin-bottom: clamp(24px, 3vh, 40px);
+    padding: 8px 16px;
+    border: 1px solid rgba(20, 20, 20, 0.18);
+    border-radius: 999px;
+    font-size: clamp(11px, 0.9vw, 14px);
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    font-weight: 600;
+    color: #111;
+}
+
+/* ----- Brand colour strip — single horizontal row at common case,
+   wraps + flows naturally as more colours are added. Each tile shows
+   its name + hex; text colour auto-contrast picked by JS. ----- */
+.work-modal-colors {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 4px;
+    margin-top: clamp(40px, 5vh, 80px);
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.work-modal-color {
+    position: relative;
+    padding: clamp(22px, 2.4vh, 36px) clamp(22px, 2.4vw, 40px);
+    min-height: clamp(120px, 14vh, 180px);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    overflow: hidden;
+    will-change: transform, opacity;
+}
+
+/* Name pinned to TOP-LEFT, hex pinned to BOTTOM-RIGHT — matches the
+   reference exactly. */
+.work-modal-color .name {
+    position: absolute;
+    top:  clamp(22px, 2.4vh, 36px);
+    left: clamp(22px, 2.4vw, 40px);
+    font-size: clamp(15px, 1.2vw, 22px);
+    font-weight: 700;
+    line-height: 1;
+}
+
+.work-modal-color .hex {
+    position: absolute;
+    bottom: clamp(22px, 2.4vh, 36px);
+    right:  clamp(22px, 2.4vw, 40px);
+    font-size: clamp(12px, 0.85vw, 15px);
+    font-weight: 500;
+    line-height: 1;
+    opacity: 0.85;
+    letter-spacing: 0.06em;
+}
+
+/* ----- End-of-scroll prompt — invites the user to view the next
+   project. Sits at the very bottom of the modal scroll. ----- */
+.work-modal-end {
+    margin-top: clamp(60px, 8vh, 140px);
+    padding: clamp(40px, 6vh, 80px) 0 0;
+    text-align: center;
+    border-top: 1px solid rgba(0, 0, 0, 0.08);
+    color: #555555;
+}
+
+.work-modal-end p {
+    margin: 0 0 14px;
+    font-size: 14px;
+    letter-spacing: 0.02em;
+}
+
+.work-modal-end-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 16px 28px;
+    border: 1px solid #111111;
+    border-radius: 999px;
+    color: #111111;
+    background: transparent;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    text-decoration: none;
+    transition: background 0.3s var(--ease-out), color 0.3s var(--ease-out);
+}
+.work-modal-end-btn:hover {
+    background: #111111;
+    color: #ffffff;
+}
+
+@media (max-width: 768px) {
+    .work-modal-header,
+    .work-modal-meta {
+        grid-template-columns: 1fr;
+        gap: clamp(14px, 2vh, 24px);
+    }
+    .work-modal-tags {
+        justify-content: flex-start;
+    }
+    .work-modal-images {
+        grid-template-columns: 1fr;
+    }
+    .work-modal-image,
+    .work-modal-image.is-third,
+    .work-modal-image.is-half,
+    .work-modal-image.is-wide,
+    .work-modal-image.is-full {
+        grid-column: 1;
+        height: 220px;
+    }
+}
+
+/* ========== Contact (footer) =======================================
+   Sticky-reveal footer pattern: the contact section is fixed at the
+   bottom of the viewport on a separate stacking layer (z-index: 0),
+   while every other section sits on top (z-index: 5+) with solid
+   backgrounds. As the user scrolls down, the about section slides
+   up off the viewport, gradually revealing the fixed contact below.
+   Body { padding-bottom: 100vh } provides the scroll runway needed
+   to fully reveal the contact section past the about block. */
+.contact {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    height: 100vh;
+    background: #1F1F1F;
+    color: #ffffff;
+    z-index: 0;
+    overflow: hidden;
+}
+
+.contact-inner {
+    position: relative;
+    z-index: 2;
+    width: 100%;
+    height: 100%;
+    /* Bigger top padding pushes the tagline lower, closer to the
+       action-row beneath it. Side padding matches the header's
+       `.container`; deep left inset for the tagline lives on
+       .contact-top below. */
+    padding:
+        clamp(160px, 24vh, 320px)
+        var(--pad-x)
+        clamp(40px, 5vh, 80px);
+    display: flex;
+    flex-direction: column;
+    pointer-events: none;
+}
+.contact-inner > * { pointer-events: auto; }
+
+.contact-top {
+    /* Tagline gets the deep left inset to match the reference. */
+    padding-left: clamp(0px, 10vw, 180px);
+}
+
+.contact-tagline {
+    margin: 0 0 clamp(20px, 3vh, 36px);
+    font-weight: 700;
+    font-size: clamp(40px, 5.6vw, 110px);
+    line-height: 1.08;
+    letter-spacing: -0.01em;
+    text-transform: uppercase;
+    color: #ffffff;
+    max-width: 18ch;
+}
+
+.contact-tagline-line {
+    display: block;
+}
+
+/* "let's go" — bold lowercase CTA under the tagline, same family,
+   roughly half the tagline size. Acts as the send-enquiry trigger
+   via mailto. */
+.contact-cta {
+    display: inline-block;
+    font-size: clamp(36px, 3.6vw, 68px);
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: -0.01em;
+    color: #ffffff;
+    text-decoration: none;
+    text-transform: lowercase;
+}
+
+.contact-bottom {
+    margin-top: auto;
+    padding-top: clamp(20px, 3vh, 40px);
+   
+}
+
+/* "Hamid" marquee background — huge, very-low-opacity word repeats
+   across the section and scrolls right → left in a slow seamless
+   loop. Sits behind .contact-inner (z-index 1 vs 2) so the cards
+   and text always read on top. */
+.contact-marquee {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.contact-marquee-track {
+    position: absolute;
+    left: 0;
+    bottom: clamp(40px, 6vh, 80px);
+    display: flex;
+    width: max-content;
+    color: rgba(255, 255, 255, 0.05);
+    font-size: clamp(140px, 22vw, 380px);
+    font-weight: 800;
+    line-height: 0.85;
+    letter-spacing: -0.04em;
+    white-space: nowrap;
+    will-change: transform;
+    animation: contact-marquee 60s linear infinite;
+}
+
+.contact-marquee-track > span {
+    flex-shrink: 0;
+}
+
+@keyframes contact-marquee {
+    from { transform: translate3d(0, 0, 0); }
+    to   { transform: translate3d(-50%, 0, 0); }
+}
+
+/* Action row: cards on the left, "let's go" CTA on the right.
+   Inherits .contact-top's deep left inset so the cards line up with
+   the tagline above. margin-top: auto pushes the row down so it sits
+   in the lower half, matching the reference. */
+.contact-action-row {
+    /* Cards FIRST, "let's go" right next to them with a SHORT gap
+       — they read as one group, not split across the row. */
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: clamp(16px, 1.8vw, 32px);
+    padding-left: clamp(0px, 10vw, 180px);
+    margin-top: auto;
+    padding-top: clamp(40px, 8vh, 120px);
+    padding-bottom: clamp(40px, 6vh, 80px);
+}
+
+.contact-cards {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+/* Each card is a clickable link wrapping its platform icon and a
+   slide-in name. Width is locked to icon-only by JS at init; on hover
+   GSAP animates it to its measured natural-content width and reveals
+   the name with a per-character stagger reveal. */
+/* Square at rest. Icon centered absolutely inside; name absolute at
+   bottom and hidden. On hover GSAP animates the card's width AND
+   height (so it grows to fit the name); CSS slides the icon to the
+   top of the card and fades the name in; playGlitchReveal scrambles
+   the name text so it decodes in like the menu links. */
+.contact-card {
+    position: relative;
+    flex-shrink: 0;
+    width:  clamp(74px, 6.4vw, 96px);
+    height: clamp(74px, 6.4vw, 96px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.03);
+    text-decoration: none;
+    color: #ffffff;
+    cursor: pointer;
+    overflow: hidden;
+    box-sizing: border-box;
+    will-change: width, height;
+}
+
+.contact-card-icon {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    line-height: 0;
+    transition:
+        top       0.5s var(--ease-out),
+        left      0.5s var(--ease-out),
+        transform 0.5s var(--ease-out);
+}
+.contact-card-icon svg {
+    display: block;
+}
+
+/* Bold name, LEFT-aligned along the bottom-left. Hidden by default;
+   fades in on hover. */
+.contact-card-name {
+    position: absolute;
+    left: clamp(14px, 1.4vw, 22px);
+    right: clamp(14px, 1.4vw, 22px);
+    bottom: clamp(20px, 2.4vh, 28px);
+    text-align: left;
+    font-size: clamp(16px, 1.6vw, 24px);
+    font-weight: 700;
+    letter-spacing: normal;
+    line-height: 1;
+    color: #ffffff;
+    white-space: nowrap;
+    opacity: 0;
+    transition: opacity 0.25s 0.15s var(--ease-out);
+}
+
+/* Hover: icon and name stay LEFT-aligned but the whole stack sits
+   vertically centered in the card — equal distance from top and
+   bottom. Width grows via GSAP, height stays fixed. */
+.contact-card:hover .contact-card-icon {
+    top:  clamp(20px, 2.4vh, 28px);
+    left: clamp(14px, 1.4vw, 22px);
+    transform: translate(0, 0);
+}
+.contact-card:hover .contact-card-name {
+    opacity: 1;
+}
+
+.contact-footer {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: clamp(16px, 2vw, 32px);
+    font-size: 13px;
+    letter-spacing: 0.02em;
+    font-weight: 500;
+}
+
+/* Left group: copyright sits next to the "do not steal" line with a
+   small gap — they read as one block, not split across the row. */
+.contact-footer-left {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: clamp(18px, 2vw, 36px);
+}
+
+.contact-footer-copy {
+    color: rgba(255, 255, 255, 0.5);
+}
+
+/* "Do not steal..." — sits in a much dimmer grey so it reads as
+   secondary inline meta next to the copyright. */
+.contact-footer-meta {
+    color: rgba(255, 255, 255, 0.28);
+}
+
+/* "Built with..." — pushed to the right side of the row. */
+.contact-footer-right {
+    color: rgba(255, 255, 255, 0.5);
+}
+
+@media (max-width: 900px) {
+    .contact {
+        padding: 12vh clamp(20px, 5vw, 40px) clamp(140px, 22vh, 240px);
+    }
+    .contact-inner {
+        padding-left: 0;
+    }
+    .contact-tagline {
+        font-size: clamp(32px, 8vw, 56px);
+    }
+    .contact-cta {
+        font-size: clamp(28px, 7vw, 48px);
+    }
+    .contact-links {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .contact-footer {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}
+
+/* ============================================================
+   RESPONSIVE — tablet (≤1024px) and mobile (≤640px) breakpoints
+   ============================================================ */
+
+/* -------- Tablet (≤1024px) -------- */
+@media (max-width: 1024px) {
+    /* Hero: shrink the dramatic side-by-side titles */
+    .hero-title {
+        font-size: clamp(48px, 7vw, 72px);
+    }
+    .hero-title--secondary {
+        font-size: clamp(22px, 3vw, 32px);
+    }
+    .hero-canvas {
+        right: 0;
+        opacity: 0.85;
+    }
+
+    /* Header — hide desktop nav + CV link, show hamburger button.
+       Two-column layout (logo + burger) so the header lines up cleanly. */
+    .header-inner {
+        grid-template-columns: 1fr auto;
+    }
+    .nav,
+    .cv-link {
+        display: none;
+    }
+    .header-burger {
+        display: block;
+    }
+
+    /* Work-intro / About-intro headings */
+    .work-intro-heading,
+    .about-intro-heading {
+        font-size: clamp(56px, 11vw, 130px);
+    }
+
+    /* About bio — looser side padding so the photo column doesn't
+       crowd the bio text on iPad-sized viewports */
+    .about-bio {
+        padding: 18vh var(--pad-x) 12vh;
+    }
+    .about-bio-inner {
+        gap: clamp(20px, 3vw, 48px);
+    }
+
+    /* Contact tagline */
+    .contact-tagline {
+        font-size: clamp(36px, 5vw, 72px);
+    }
+
+    /* Project modal — 2-col image grid, shorter tiles, header
+       stacks instead of 2-up */
+    .work-modal {
+        top: 8vh;
+        height: 92vh;
+    }
+    .work-modal-images {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .work-modal-image,
+    .work-modal-image.is-third,
+    .work-modal-image.is-half,
+    .work-modal-image.is-wide {
+        grid-column: span 1;
+    }
+    .work-modal-image.is-full {
+        grid-column: 1 / -1;
+    }
+    .work-modal-image {
+        height: clamp(320px, 50vh, 520px);
+    }
+    .work-modal-title {
+        font-size: clamp(32px, 5vw, 56px);
+    }
+    .work-modal-live {
+        font-size: clamp(20px, 2.4vw, 28px);
+    }
+}
+
+/* -------- Mobile (≤640px) -------- */
+@media (max-width: 640px) {
+    :root {
+        --pad-x: clamp(16px, 5vw, 24px);
+    }
+
+    /* Header — already collapsed to logo + burger at 900px; just
+       tighten padding and shrink the logo for narrow phones. */
+    .header {
+        padding-top: 16px;
+        padding-bottom: 16px;
+    }
+    .header-inner {
+        gap: 12px;
+    }
+    .logo {
+        font-size: 20px;
+        margin-top: 14px;
+    }
+
+    /* Hero — stack content vertically, smaller titles, smaller flag */
+    .hero-stage {
+        height: 100svh;
+    }
+    .hero-content {
+        grid-template-columns: 1fr;
+        align-items: flex-start;
+        padding-top: 18vh;
+        padding-bottom: 12vh;
+        mix-blend-mode: difference;
+    }
+    .hero-title--primary,
+    .hero-title--secondary {
+        grid-column: 2;
+        justify-self: stretch;
+        text-align: center;
+        max-width: 100%;
+    }
+    .hero-title {
+        font-size: clamp(40px, 11vw, 64px);
+    }
+    .hero-title--secondary {
+        font-size: clamp(18px, 4.6vw, 26px);
+        margin-right: 0;
+        margin-top: 4vh;
+    }
+    .hero-canvas {
+        right: 0;
+        opacity: 0.75;
+    }
+    .hero-flag {
+        width: 1.45em;
+        height: 0.9em;
+    }
+    .scroll-indicator {
+        bottom: 4vh;
+    }
+
+    /* Work-intro / About-intro pinned headings — much smaller, and
+       hide the floating decorative props so the heading isn't crowded */
+    .work-intro-heading,
+    .about-intro-heading {
+        font-size: clamp(40px, 18vw, 80px);
+    }
+    .about-intro-float--pen {
+        display: none;
+    }
+    /* Floats hugging the four corners of the heading area so they
+       cluster near the text instead of drifting to the viewport edges. */
+    .work-intro-float--1 { width: 120px; top: 32%;  left: 4%; }
+    .work-intro-float--2 { width: 100px; top: 72%;  left: 4%; }
+    .work-intro-float--3 { width: 120px; top: 32%;  right: 4%; left: auto; }
+    .work-intro-float--4 { width: 100px; top: 72%;  right: 4%; left: auto; }
+    .about-intro-float--camera    { width: 120px; top: 32%; left: 4%; }
+    .about-intro-float--coffee    { width: 100px; top: 72%; left: 4%; }
+    .about-intro-float--glasses   { width: 120px; top: 32%; right: 4%; left: auto; }
+    .about-intro-float--headphone { width: 100px; top: 72%; right: 4%; left: auto; }
+
+    /* Work stage — tighten panel content + counter; horizontal
+       scroller still works on touch */
+    .work-stage-counter {
+        top: 60px;
+        right: var(--pad-x);
+    }
+    .work-panel-content {
+        padding-bottom: 24vh;   /* clear the CTA below */
+    }
+    .work-panel-eyebrow {
+        font-size: 11px;
+    }
+    .work-panel-title {
+        font-size: clamp(36px, 11vw, 64px);
+    }
+    .work-panel-tags li {
+        font-size: 11px;
+    }
+    .work-panel-desc {
+        font-size: 13px;
+        max-width: 100%;
+    }
+    .work-panel-cta {
+        right: var(--pad-x);
+        left: var(--pad-x);
+        width: auto;
+        bottom: 20px;
+    }
+    .work-panel-cta-name {
+        font-size: 12px;
+    }
+
+    /* About bio — single column, photo above text, tighter padding */
+    .about-bio {
+        padding: 14vh var(--pad-x) 10vh;
+    }
+    .about-bio-inner {
+        grid-template-columns: 1fr;
+        gap: 24px;
+        margin-top: 4vh;
+    }
+    .about-photo {
+        max-width: 280px;
+        margin: 0 auto;
+    }
+    /* Photo's video extends ~160px below the column (feet) due to the
+       2× scale + object-position: bottom. Push content down so the
+       eyebrow + name don't get covered by the feet. */
+    .about-content {
+        padding-top: clamp(140px, 22vw, 200px);
+    }
+    .about-name {
+        font-size: clamp(32px, 9vw, 48px);
+    }
+    .about-bio-text {
+        font-size: 15px;
+    }
+    .about-cv-btn {
+        font-size: 16px;
+    }
+
+    /* About diagonal bars — flatter rotation + smaller props */
+    .about-bars {
+        top: 4vh;
+    }
+    .about-bar {
+        height: clamp(60px, 8vw, 80px);
+        transform: rotate(-6deg);
+    }
+    .about-bar--white .about-bar-set img {
+        height: 32px;
+    }
+    .about-bar--red .about-bar-set {
+        font-size: 16px;
+    }
+
+    /* Experience timeline — already collapses to 1 col at 768px */
+    .about-experience {
+        padding: 12vh var(--pad-x) 14vh;
+    }
+
+    /* Contact (footer) — stack tagline, shrink, simplify */
+    .contact {
+        height: 100svh;
+        top: 0;
+    }
+    .contact-inner {
+        padding: 14vh var(--pad-x) 4vh;
+    }
+    .contact-top {
+        padding-left: 0;
+    }
+    .contact-tagline {
+        font-size: clamp(28px, 12vw, 58px);
+    }
+    .contact-action-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 24px;
+        padding-left: 0;
+        padding-top: 6vh;
+        padding-bottom: 4vh;
+    }
+    .contact-cta {
+        font-size: clamp(28px, 8vw, 44px);
+    }
+    .contact-cards {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    .contact-card {
+        width: clamp(64px, 22vw, 80px);
+        height: clamp(64px, 22vw, 80px);
+    }
+    .contact-card-name {
+        font-size: 14px;
+    }
+    .contact-marquee-track {
+        font-size: clamp(120px, 32vw, 200px);
+    }
+    .contact-bottom {
+        padding-top: 16px;
+    }
+    .contact-footer {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+        font-size: 11px;
+    }
+    .contact-footer-left {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+    }
+
+    /* Project modal — full-width tiles, shorter, header stacks */
+    .work-modal {
+        top: 4vh;
+        height: 96vh;
+    }
+    .work-modal-scroll {
+        padding: 60px 20px 80px;
+    }
+    .work-modal-close {
+        top: 12px;
+        right: 12px;
+        width: 40px;
+        height: 40px;
+    }
+    .work-modal-header {
+        grid-template-columns: 1fr;
+        gap: 14px;
+    }
+    .work-modal-title {
+        font-size: clamp(28px, 8vw, 44px);
+    }
+    .work-modal-tags {
+        justify-content: flex-start;
+    }
+    .work-modal-tags li {
+        font-size: 11px;
+        padding: 6px 12px;
+    }
+    .work-modal-meta {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 24px;
+    }
+    .work-modal-meta-block {
+        min-width: 0;
+    }
+    .work-modal-live {
+        margin-left: 0;
+        font-size: clamp(18px, 5vw, 24px);
+    }
+    .work-modal-images {
+        grid-template-columns: 1fr;
+    }
+    .work-modal-image,
+    .work-modal-image.is-third,
+    .work-modal-image.is-half,
+    .work-modal-image.is-wide,
+    .work-modal-image.is-full {
+        grid-column: 1;
+        height: clamp(240px, 56vh, 380px);
+    }
+    .work-modal-colors {
+        grid-template-columns: 1fr;
+    }
+    .work-modal-color {
+        min-height: 90px;
+        padding: 18px 22px;
+    }
+    .work-modal-color .name {
+        font-size: 14px;
+        top: 18px;
+        left: 22px;
+    }
+    .work-modal-color .hex {
+        font-size: 11px;
+        bottom: 18px;
+        right: 22px;
+    }
+    .work-modal-end {
+        margin-top: 60px;
+        padding-top: 30px;
+    }
+    .work-modal-end-btn {
+        font-size: 12px;
+        padding: 14px 22px;
+    }
+
+    /* Scroll-mouse indicator — already display: none, leave alone */
+}

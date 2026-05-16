@@ -1353,6 +1353,8 @@ const WORK_PROJECTS = {
             'assets/technologies/fi_5968705.svg',
             'assets/technologies/fi_5968559.svg',
             'assets/technologies/fi_5968520.svg',
+            'assets/technologies/fi_5968428.svg',
+            'assets/technologies/Visual_Studio_Icon_2022 1.svg',
             'assets/technologies/fi_5968472.svg'
         ],
         liveUrl: 'https://kiwiwebsitedesign.nz/',
@@ -1365,6 +1367,8 @@ const WORK_PROJECTS = {
             { src: 'assets/work/kiwiwebsitedesign/kwd6.webp', mods: ['half'] },
             { src: 'assets/work/kiwiwebsitedesign/logo-1.webp', mods: ['half'] },
             { src: 'assets/work/kiwiwebsitedesign/logo-2.webp', mods: ['half'] },
+            { src: 'assets/work/kiwiwebsitedesign/logo-5.webp', mods: ['half'] },
+            { src: 'assets/work/kiwiwebsitedesign/logo-video.mp4', mods: ['half'] },
             { src: 'assets/work/kiwiwebsitedesign/logo-3.webp', mods: ['full'] },
             { src: 'assets/work/kiwiwebsitedesign/logo-4.webp', mods: ['full'] }
         ],
